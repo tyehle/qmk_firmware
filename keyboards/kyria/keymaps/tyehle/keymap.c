@@ -16,14 +16,38 @@
 #include QMK_KEYBOARD_H
 
 #ifdef RGBLIGHT_ENABLE
+// Unused
+const rgblight_segment_t PROGMEM layer1_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
+// Lower
+const rgblight_segment_t PROGMEM layer2_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 255*9/12, 0xFF, 0xFF}, // purple
+    {10, 2, 255*9/12, 0xFF, 0xFF}
+);
+// Raise
+const rgblight_segment_t PROGMEM layer3_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 255*4/12, 0xFF, 0xFF}, // green
+    {10, 2, 255*4/12, 0xFF, 0xFF}
+);
+// Adjust
+const rgblight_segment_t PROGMEM layer4_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 255*7/12, 0xFF, 0xFF}, // azure
+    {10, 2, 255*7/12, 0xFF, 0xFF}
+);
+
+// Now define the array of layers. Later layers take precedence
+const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
+    layer1_lights,
+    layer2_lights,
+    layer3_lights,
+    layer4_lights
+);
+
 void keyboard_post_init_user(void) {
   rgblight_enable_noeeprom(); // Enables RGB, without saving settings
-  rgblight_sethsv_noeeprom(255*1/12, 0xFF, 0x80); // orange
-//   rgblight_sethsv_noeeprom(255*4/12, 0xFF, 0x80); // green
-//   rgblight_sethsv_noeeprom(255*7/12, 0xFF, 0x80); // azure
-//   rgblight_sethsv_noeeprom(255*9/12, 0xFF, 0x80); // purple
-//   rgblight_sethsv_noeeprom(255*11/12, 0xFF, 0x80); // rose
+  rgblight_sethsv_noeeprom(255*1/12, 0xFF, 0x9F); // orange
   rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+
+  rgblight_layers = layer_lights;
 }
 #endif
 
@@ -138,7 +162,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-    return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST);
+    state = update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST);
+    // rgblight_set_layer_state(0, layer_state_cmp(state, 0));
+    rgblight_set_layer_state(1, layer_state_cmp(state, 1));
+    rgblight_set_layer_state(2, layer_state_cmp(state, 2));
+    rgblight_set_layer_state(3, layer_state_cmp(state, 3));
+    rgblight_set_layer_state(4, layer_state_cmp(state, 4));
+    return state;
 }
 
 #ifdef OLED_DRIVER_ENABLE
