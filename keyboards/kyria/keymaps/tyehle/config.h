@@ -31,3 +31,13 @@
 // If you are using an Elite C rev3 on the slave side, uncomment the lines below:
 // #define SPLIT_USB_DETECT
 // #define NO_USB_STARTUP_CHECK
+
+#define TAPPING_TERM 200
+
+// Allows to use either side as the master. Look at the documentation for info:
+// https://docs.qmk.fm/#/config_options?id=setting-handedness
+#define EE_HANDS
+
+// Allows a tap/hold press, key press, tap/hold release, key release to send two keys instead of the modified key
+// eg: [Shift/A press, X press, Shift/A release, X release] will type ax instead of X.
+#define IGNORE_MOD_TAP_INTERRUPT

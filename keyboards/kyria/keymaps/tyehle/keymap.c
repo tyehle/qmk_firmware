@@ -17,29 +17,35 @@
 
 #ifdef RGBLIGHT_ENABLE
 // Unused
-const rgblight_segment_t PROGMEM layer1_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
+const rgblight_segment_t PROGMEM capslock_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
 // Lower
-const rgblight_segment_t PROGMEM layer2_lights[] = RGBLIGHT_LAYER_SEGMENTS(
-    {0, 2, 255*9/12, 0xFF, 0xFF}, // purple
-    {10, 2, 255*9/12, 0xFF, 0xFF}
+const rgblight_segment_t PROGMEM lower_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 191, 0xFF, 0xFF}, // purple
+    {10, 2, 191, 0xFF, 0xFF}
 );
 // Raise
-const rgblight_segment_t PROGMEM layer3_lights[] = RGBLIGHT_LAYER_SEGMENTS(
-    {0, 2, 255*4/12, 0xFF, 0xFF}, // green
-    {10, 2, 255*4/12, 0xFF, 0xFF}
+const rgblight_segment_t PROGMEM raise_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 93, 0xFF, 0xFF}, // mint (93 looks better than 106 [255*5/12] because of bad LED normalization)
+    {10, 2, 93, 0xFF, 0xFF}
 );
 // Adjust
-const rgblight_segment_t PROGMEM layer4_lights[] = RGBLIGHT_LAYER_SEGMENTS(
-    {0, 2, 255*7/12, 0xFF, 0xFF}, // azure
-    {10, 2, 255*7/12, 0xFF, 0xFF}
+const rgblight_segment_t PROGMEM adjust_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 0, 0x01, 0xFF}, // white
+    {10, 2, 0, 0x01, 0xFF}
+);
+// Nav
+const rgblight_segment_t PROGMEM nav_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 149, 0xFF, 0xFF}, // azure
+    {10, 2, 149, 0xFF, 0xFF}
 );
 
 // Now define the array of layers. Later layers take precedence
 const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
-    layer1_lights,
-    layer2_lights,
-    layer3_lights,
-    layer4_lights
+    capslock_lights,
+    lower_lights,
+    raise_lights,
+    adjust_lights,
+    nav_lights
 );
 
 void keyboard_post_init_user(void) {
@@ -54,74 +60,83 @@ void keyboard_post_init_user(void) {
 enum layers {
     _QWERTY = 0,
     _LOWER,
+    // _LOWER_2,
     _RAISE,
-    _ADJUST
+    _ADJUST,
+    _NAV
+};
+
+uint16_t copy_paste_timer;
+enum custom_keycodes {
+    KC_CCCV = SAFE_RANGE,
+    KC_LPAB,
+    KC_RPAB
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /*
  * Base Layer: QWERTY
- *
+ * TODO: Shift+Layers, Mod Taps on the home row keys
  * ,-------------------------------------------.                              ,-------------------------------------------.
- * |RAIS/ESC|   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  | \   |
+ * |  Esc   |   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  | \   |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |Ctrl/BS |   A  |   S  |  D   |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |  ' "   |
+ * |  Lock  |   A  |   S  |  D   |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |  ' "   |
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * | LShift |   Z  |   X  |   C  |   V  |   B  |LShift|LShift|  |LShift|LShift|   N  |   M  | ,  < | . >  | /  ? |  - _   |
+ * | LShift |   Z  |   X  |   C  |   V  |   B  | CCCV | GUI  |  | GUI  | CAG  |   N  |   M  | ,  < | . >  | /  ? | RShift |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
- *                        | GUI  | Del  | Enter| Space| Esc  |  | Enter| Space| Tab  | Bksp | AltGr|
- *                        |      |      | Alt  | Lower| Raise|  | Lower| Raise|      |      |      |
+ *                        |LShift| Lower| Bksp | Tab  | Nav  |  | Nav  |Enter | Space|Raise |RShift|
+ *                        |      |      | Ctrl | Alt  |      |  |      | Alt  | Ctrl |      |      |
  *                        `----------------------------------'  `----------------------------------'
  */
     [_QWERTY] = LAYOUT(
-      LT(_RAISE, KC_ESC),       KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_PIPE,
-      MT(MOD_LCTL, KC_BSPC),   KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
-      KC_LSFT,                 KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_LSFT,   KC_LSFT, KC_LSFT, KC_LSFT, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_MINS,
-              KC_LGUI, KC_DEL, MT(MOD_LALT, KC_ENT), LT(_LOWER, KC_SPC), LT(_RAISE, KC_ESC), LT(_LOWER, KC_ENT), LT(_RAISE, KC_SPC), KC_TAB,  KC_BSPC, KC_RALT
+      KC_ESC,  KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
+      KC_LOCK, KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+      KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_CCCV,  KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
+      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), MO(_NAV), MO(_NAV), RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
     ),
 /*
  * Lower Layer: Symbols
  *
  * ,-------------------------------------------.                              ,-------------------------------------------.
- * |        |  !   |  @   |  {   |  }   |  |   |                              |      |      |      |      |      |  | \   |
+ * |        |  !   |  @   | [ {  | ] } |  |   |                              |  |   |  _   |  &   |  \   |      |        |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |        |  #   |  $   |  (   |  )   |  `   |                              |   +  |  -   |  /   |  *   |  %   |  ' "   |
+ * |        |  #   |  $   | ( <  | ) >  |  `   |                              |  +   |  -   |  *   |  /   |  %   |        |
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * |        |  %   |  ^   |  [   |  ]   |  ~   |      |      |  |      |      |   &  |  =   |  ,   |  .   |  / ? | - _    |
+ * |        |  %   |  ^   | ' "  | ' "  |  ~   |      |      |  |      |      |  ;   |  =   |  ,   |  .   |  / ? | - _    |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
- *                        |      |      |      |  ;   |  =   |  |  =   |  ;   |      |      |      |
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        `----------------------------------'  `----------------------------------'
  */
     [_LOWER] = LAYOUT(
-      _______, KC_EXLM, KC_AT,   KC_LCBR, KC_RCBR, KC_PIPE,                                     _______, _______, _______, _______, _______, KC_BSLS,
-      _______, KC_HASH, KC_DLR,  KC_LPRN, KC_RPRN, KC_GRV,                                      KC_PLUS, KC_MINS, KC_SLSH, KC_ASTR, KC_PERC, KC_QUOT,
-      _______, KC_PERC, KC_CIRC, KC_LBRC, KC_RBRC, KC_TILD, _______, _______, _______, _______, KC_AMPR, KC_EQL,  KC_COMM, KC_DOT,  KC_SLSH, KC_MINS,
-                                 _______, _______, _______, KC_SCLN, KC_EQL,  KC_EQL,  KC_SCLN, _______, _______, _______
+      _______, KC_EXLM, KC_AT,   KC_LBRC, KC_RBRC, KC_PIPE,                                     KC_PIPE, KC_UNDS, KC_AMPR, KC_BSLS, _______, _______,
+      _______, KC_HASH, KC_DLR,  KC_LPAB, KC_RPAB, KC_GRV,                                      KC_PLUS, KC_MINS, KC_ASTR, KC_SLSH, KC_PERC, _______,
+      _______, KC_PERC, KC_CIRC, KC_QUOT, KC_QUOT, KC_TILD, _______, _______, _______, _______, KC_SCLN, KC_EQL,  KC_COMM, KC_DOT,  KC_SLSH, KC_MINS,
+                                 _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
 /*
- * Raise Layer: Number keys, media, navigation
+ * Raise Layer: Number keys, function keys
  *
  * ,-------------------------------------------.                              ,-------------------------------------------.
- * |        |   1  |  2   |  3   |  4   |  5   |                              |  6   |  7   |  8   |  9   |  0   |        |
+ * |        |  F1  |  F2  |  F3  |  F4  |  F5  |                              |  F6  |  F7  |  F8  |  F9  | F10  |        |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |        |      | Prev | Play | Next | VolUp|                              | Left | Down | Up   | Right|      |        |
+ * |        |  1   |  2   |  3   |  4   |  5   |                              |  6   |  7   |  8   |  9   |  0   |        |
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * |        |      |      |      | Mute | VolDn|      |      |  |      |      | MLeft| Mdown| MUp  |MRight|      |        |
+ * |        | F11  | F12  | F13  | F14  | F15  |      |      |  |      |      | F16  | F17  | F18  | F19  | F20  |        |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        `----------------------------------'  `----------------------------------'
  */
     [_RAISE] = LAYOUT(
-      _______, KC_1, 	  KC_2,    KC_3,    KC_4,    KC_5,                                        KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    _______,
-      _______, _______, KC_MPRV, KC_MPLY, KC_MNXT, KC_VOLU,                                     KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT, _______, _______,
-      _______, _______, _______, _______, KC_MUTE, KC_VOLD, _______, _______, _______, _______, KC_MS_L, KC_MS_D, KC_MS_U, KC_MS_R, _______, _______,
+      _______, KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,                                       KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  _______,
+      _______, KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                                        KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    _______,
+      _______, KC_F11,  KC_F12,  KC_F13,  KC_F14,  KC_F15,  _______, _______, _______, _______, KC_F16,  KC_F17,  KC_F18,  KC_F19,  KC_F20,  _______,
                                  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
 /*
- * Adjust Layer: Function keys, RGB
- *
+ * Adjust Layer: Mouse, scroll, RGB
+ * TODO
  * ,-------------------------------------------.                              ,-------------------------------------------.
  * |        | F1   |  F2  | F3   | F4   | F5   |                              | F6   | F7   |  F8  | F9   | F10  |        |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
@@ -138,6 +153,26 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       _______, RGB_TOG, RGB_SAI, RGB_HUI, RGB_VAI, RGB_MOD,                                     _______, _______, _______, KC_F11,  KC_F12,  _______,
       _______, _______, RGB_SAD, RGB_HUD, RGB_VAD, RGB_RMOD,_______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
                                  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
+    ),
+/*
+ * Nav Layer: Move the cursor, position windows, and change desktops
+ *
+ * ,-------------------------------------------.                              ,-------------------------------------------.
+ * |        |      |      | CA ^ |      |      |                              |      |      |  ^   |      |      |        |
+ * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
+ * |        | GUI  | CA < | CA v | CA > |      |                              | Home |  <   |  v   |  >   | End  |        |
+ * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
+ * |        |      |      |      |      |      |      |      |  |      |      |      |      |      |      |      |        |
+ * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        `----------------------------------'  `----------------------------------'
+ */
+    [_NAV] = LAYOUT(
+      _______, _______,      _______, LCA(KC_UP),        _______, _______,                                     _______, _______, KC_UP,   _______, _______, _______,
+      _______, KC_LGUI, LCA(KC_LEFT), LCA(KC_DOWN), LCA(KC_RIGHT),_______,                                     KC_HOME, KC_LEFT, KC_DOWN, KC_RIGHT,KC_END,  _______,
+      _______, _______,      _______,      _______,      _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
+                                           _______,      _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
 // /*
 //  * Layer template
@@ -168,7 +203,50 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     rgblight_set_layer_state(2, layer_state_cmp(state, 2));
     rgblight_set_layer_state(3, layer_state_cmp(state, 3));
     rgblight_set_layer_state(4, layer_state_cmp(state, 4));
+    rgblight_set_layer_state(5, layer_state_cmp(state, 5));
     return state;
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case KC_CCCV:  // One key copy/paste
+            if (record->event.pressed) {
+                copy_paste_timer = timer_read();
+            } else {
+                if (timer_elapsed(copy_paste_timer) > TAPPING_TERM) {  // Hold, copy
+                    tap_code16(LCTL(KC_C));
+                } else { // Tap, paste
+                    tap_code16(LCTL(KC_V));
+                }
+            }
+            break;
+
+        // Parens and angle brackets
+        case KC_LPAB:
+            if(record->event.pressed) {
+                if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
+                    tap_code16(KC_LEFT_ANGLE_BRACKET);
+                } else {
+                    tap_code16(KC_LEFT_PAREN);
+                }
+            } else {
+                // nothing on release
+            }
+            break;
+        case KC_RPAB:
+            if(record->event.pressed) {
+                if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
+                    tap_code16(KC_RIGHT_ANGLE_BRACKET);
+                } else {
+                    tap_code16(KC_RIGHT_PAREN);
+                }
+            } else {
+                // nothing on release
+            }
+            break;
+
+    }
+    return true;
 }
 
 #ifdef OLED_DRIVER_ENABLE
@@ -190,18 +268,18 @@ static void render_kyria_logo(void) {
     oled_write_raw_P(kyria_logo, sizeof(kyria_logo));
 }
 
-static void render_qmk_logo(void) {
-  static const char PROGMEM qmk_logo[] = {
-    0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0x90,0x91,0x92,0x93,0x94,
-    0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,0xb0,0xb1,0xb2,0xb3,0xb4,
-    0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,0xd0,0xd1,0xd2,0xd3,0xd4,0};
+// static void render_qmk_logo(void) {
+//   static const char PROGMEM qmk_logo[] = {
+//     0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0x90,0x91,0x92,0x93,0x94,
+//     0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,0xb0,0xb1,0xb2,0xb3,0xb4,
+//     0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,0xd0,0xd1,0xd2,0xd3,0xd4,0};
 
-  oled_write_P(qmk_logo, false);
-}
+//   oled_write_P(qmk_logo, false);
+// }
 
 static void render_status(void) {
     // QMK Logo and version information
-    render_qmk_logo();
+    // render_qmk_logo();
     oled_write_P(PSTR("Kyria rev1.0\n\n"), false);
 
     // Host Keyboard Layer Status
@@ -218,6 +296,9 @@ static void render_status(void) {
             break;
         case _ADJUST:
             oled_write_P(PSTR("Adjust\n"), false);
+            break;
+        case _NAV:
+            oled_write_P(PSTR("Navigation\n"), false);
             break;
         default:
             oled_write_P(PSTR("Undefined\n"), false);
