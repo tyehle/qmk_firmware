@@ -17,7 +17,7 @@
 
 #ifdef RGBLIGHT_ENABLE
 // Unused
-const rgblight_segment_t PROGMEM capslock_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
+const rgblight_segment_t PROGMEM base_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
 // Lower
 const rgblight_segment_t PROGMEM lower_lights[] = RGBLIGHT_LAYER_SEGMENTS(
     {0, 2, 191, 0xFF, 0xFF}, // purple
@@ -41,7 +41,7 @@ const rgblight_segment_t PROGMEM nav_lights[] = RGBLIGHT_LAYER_SEGMENTS(
 
 // Now define the array of layers. Later layers take precedence
 const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
-    capslock_lights,
+    base_lights,
     lower_lights,
     raise_lights,
     adjust_lights,
@@ -60,7 +60,6 @@ void keyboard_post_init_user(void) {
 enum layers {
     _QWERTY = 0,
     _LOWER,
-    // _LOWER_2,
     _RAISE,
     _ADJUST,
     _NAV
@@ -73,16 +72,67 @@ enum custom_keycodes {
     KC_RPAB
 };
 
+// Tap Dance declarations
+enum {
+    TD_LNAV,
+    TD_RNAV
+};
+
+void td_layer_mod_finished(qk_tap_dance_state_t *state, void *user_data, int layer, uint8_t mod) {
+    switch(state->count) {
+        case 2:
+            register_code(mod);
+        case 1:
+            layer_on(layer);
+            break;
+
+        // case 4:
+        //     if(layer_state_is(layer)) { unregister_code(mod); } else { register_code(mod); }
+        // case 3:
+        //     if(layer_state_is(layer)) { layer_off(layer); } else { layer_on(layer); }
+        //     break;
+
+        default:
+            break;
+    }
+}
+
+void td_layer_mod_reset(qk_tap_dance_state_t *state, void *user_data, int layer, uint8_t mod) {
+    switch(state->count) {
+        case 2:
+            unregister_code(mod);
+        case 1:
+            layer_off(layer);
+            break;
+
+        default:
+            break;
+    }
+}
+
+void td_nav_lshift_finished(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_finished(state, user_data, _NAV, KC_LSFT); }
+void td_nav_lshift_reset(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_reset(state, user_data, _NAV, KC_LSFT); }
+void td_nav_rshift_finished(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_finished(state, user_data, _NAV, KC_RSFT); }
+void td_nav_rshift_reset(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_reset(state, user_data, _NAV, KC_RSFT); }
+
+// Tap Dance definitions
+qk_tap_dance_action_t tap_dance_actions[] = {
+    [TD_LNAV] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, td_nav_lshift_finished, td_nav_lshift_reset),
+    [TD_RNAV] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, td_nav_rshift_finished, td_nav_rshift_reset),
+};
+
+
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /*
  * Base Layer: QWERTY
- * TODO: Shift+Layers, Mod Taps on the home row keys
+ * TODO: Shift+Layers, Mod Taps on the home row keys, oneshot modifier
  * ,-------------------------------------------.                              ,-------------------------------------------.
  * |  Esc   |   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  | \   |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
  * |  Lock  |   A  |   S  |  D   |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |  ' "   |
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * | LShift |   Z  |   X  |   C  |   V  |   B  | CCCV | GUI  |  | GUI  | CAG  |   N  |   M  | ,  < | . >  | /  ? | RShift |
+ * | LShift |   Z  |   X  |   C  |   V  |   B  |  Esc | GUI  |  | GUI  | CAG  |   N  |   M  | ,  < | . >  | /  ? | RShift |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
  *                        |LShift| Lower| Bksp | Tab  | Nav  |  | Nav  |Enter | Space|Raise |RShift|
  *                        |      |      | Ctrl | Alt  |      |  |      | Alt  | Ctrl |      |      |
@@ -91,8 +141,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] = LAYOUT(
       KC_ESC,  KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
       KC_LOCK, KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
-      KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_CCCV,  KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
-      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), MO(_NAV), MO(_NAV), RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
+      KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_ESC,   KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
+      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), TD(TD_LNAV), TD(TD_RNAV), RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
     ),
 /*
  * Lower Layer: Symbols
