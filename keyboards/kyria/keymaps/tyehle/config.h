@@ -33,7 +33,7 @@
 // #define SPLIT_USB_DETECT
 // #define NO_USB_STARTUP_CHECK
 
-#define TAPPING_TERM 200
+#define TAPPING_TERM 1000
 
 // Allows to use either side as the master. Look at the documentation for info:
 // https://docs.qmk.fm/#/config_options?id=setting-handedness
@@ -42,3 +42,5 @@
 // Allows a tap/hold press, key press, tap/hold release, key release to send two keys instead of the modified key
 // eg: [Shift/A press, X press, Shift/A release, X release] will type ax instead of X.
 #define IGNORE_MOD_TAP_INTERRUPT
+
+// #define PERMISSIVE_HOLD

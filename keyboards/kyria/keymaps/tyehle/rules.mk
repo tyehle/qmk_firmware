@@ -4,4 +4,6 @@ RGBLIGHT_ENABLE = yes      # Enable keyboard RGB underglow
 
 KEY_LOCK_ENABLE = yes
 
-TAP_DANCE_ENABLE = yes
+TAP_DANCE_ENABLE = no
+
+SRC += persistent_hold.c

@@ -14,10 +14,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include QMK_KEYBOARD_H
+#include <stdio.h>
+#include "persistent_hold.h"
+#include "layers.h"
 
 #ifdef RGBLIGHT_ENABLE
 // Unused
-const rgblight_segment_t PROGMEM base_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
+const rgblight_segment_t PROGMEM no_lights[] = RGBLIGHT_LAYER_SEGMENTS({0, 0, HSV_RED});
 // Lower
 const rgblight_segment_t PROGMEM lower_lights[] = RGBLIGHT_LAYER_SEGMENTS(
     {0, 2, 191, 0xFF, 0xFF}, // purple
@@ -38,90 +41,50 @@ const rgblight_segment_t PROGMEM nav_lights[] = RGBLIGHT_LAYER_SEGMENTS(
     {0, 2, 149, 0xFF, 0xFF}, // azure
     {10, 2, 149, 0xFF, 0xFF}
 );
+// Mod
+// TODO: Maybe just one led instead of two?
+const rgblight_segment_t PROGMEM lmod_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 2, 0, 0xFF, 0xFF} // red
+);
+const rgblight_segment_t PROGMEM rmod_lights[] = RGBLIGHT_LAYER_SEGMENTS(
+    {10, 2, 0, 0xFF, 0xFF} // red
+);
 
 // Now define the array of layers. Later layers take precedence
 const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
-    base_lights,
+    no_lights,
     lower_lights,
     raise_lights,
     adjust_lights,
-    nav_lights
+    nav_lights,
+    lmod_lights,
+    rmod_lights
 );
+#endif
+
+uint16_t nav_lshift_timer;
+int nav_lshift_presses = 0;
+
+uint16_t copy_paste_timer;
+enum custom_keycodes {
+    // KC_CCCV = SAFE_RANGE,
+    KC_LPAB,
+    KC_RPAB,
+    // KC_SCAG,
+    KC_NAV_LSHIFT
+};
+
 
 void keyboard_post_init_user(void) {
+#ifdef RGBLIGHT_ENABLE
   rgblight_enable_noeeprom(); // Enables RGB, without saving settings
   rgblight_sethsv_noeeprom(255*1/12, 0xFF, 0x9F); // orange
   rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
 
   rgblight_layers = layer_lights;
-}
 #endif
-
-enum layers {
-    _QWERTY = 0,
-    _LOWER,
-    _RAISE,
-    _ADJUST,
-    _NAV
-};
-
-uint16_t copy_paste_timer;
-enum custom_keycodes {
-    KC_CCCV = SAFE_RANGE,
-    KC_LPAB,
-    KC_RPAB
-};
-
-// Tap Dance declarations
-enum {
-    TD_LNAV,
-    TD_RNAV
-};
-
-void td_layer_mod_finished(qk_tap_dance_state_t *state, void *user_data, int layer, uint8_t mod) {
-    switch(state->count) {
-        case 2:
-            register_code(mod);
-        case 1:
-            layer_on(layer);
-            break;
-
-        // case 4:
-        //     if(layer_state_is(layer)) { unregister_code(mod); } else { register_code(mod); }
-        // case 3:
-        //     if(layer_state_is(layer)) { layer_off(layer); } else { layer_on(layer); }
-        //     break;
-
-        default:
-            break;
-    }
+    nav_lshift_timer = timer_read();
 }
-
-void td_layer_mod_reset(qk_tap_dance_state_t *state, void *user_data, int layer, uint8_t mod) {
-    switch(state->count) {
-        case 2:
-            unregister_code(mod);
-        case 1:
-            layer_off(layer);
-            break;
-
-        default:
-            break;
-    }
-}
-
-void td_nav_lshift_finished(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_finished(state, user_data, _NAV, KC_LSFT); }
-void td_nav_lshift_reset(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_reset(state, user_data, _NAV, KC_LSFT); }
-void td_nav_rshift_finished(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_finished(state, user_data, _NAV, KC_RSFT); }
-void td_nav_rshift_reset(qk_tap_dance_state_t *state, void *user_data) { td_layer_mod_reset(state, user_data, _NAV, KC_RSFT); }
-
-// Tap Dance definitions
-qk_tap_dance_action_t tap_dance_actions[] = {
-    [TD_LNAV] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, td_nav_lshift_finished, td_nav_lshift_reset),
-    [TD_RNAV] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, td_nav_rshift_finished, td_nav_rshift_reset),
-};
-
-
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /*
@@ -140,10 +103,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  */
     [_QWERTY] = LAYOUT(
       KC_ESC,  KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
-      KC_LOCK, KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+      KC_LOCK, LGUI_T(KC_A),   LALT_T(KC_S),   LCTL_T(KC_D),   LSFT_T(KC_F),   KC_G,         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
       KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_ESC,   KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
-      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), TD(TD_LNAV), TD(TD_RNAV), RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
+      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), KC_NAV_LSHIFT, XXXXXXX, RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
     ),
+
+
 /*
  * Lower Layer: Symbols
  *
@@ -164,6 +129,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       _______, KC_PERC, KC_CIRC, KC_QUOT, KC_QUOT, KC_TILD, _______, _______, _______, _______, KC_SCLN, KC_EQL,  KC_COMM, KC_DOT,  KC_SLSH, KC_MINS,
                                  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
+
+
 /*
  * Raise Layer: Number keys, function keys
  *
@@ -184,6 +151,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       _______, KC_F11,  KC_F12,  KC_F13,  KC_F14,  KC_F15,  _______, _______, _______, _______, KC_F16,  KC_F17,  KC_F18,  KC_F19,  KC_F20,  _______,
                                  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
+
+
 /*
  * Adjust Layer: Mouse, scroll, RGB
  * TODO
@@ -204,6 +173,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       _______, _______, RGB_SAD, RGB_HUD, RGB_VAD, RGB_RMOD,_______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
                                  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     ),
+
+
 /*
  * Nav Layer: Move the cursor, position windows, and change desktops
  *
@@ -214,7 +185,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
  * |        |      |      |      |      |      |      |      |  |      |      |      |      |      |      |      |        |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
- *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        |      |      | Del  |      |      |  |      |      |      |      |      |
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        `----------------------------------'  `----------------------------------'
  */
@@ -222,8 +193,54 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       _______, _______,      _______, LCA(KC_UP),        _______, _______,                                     _______, _______, KC_UP,   _______, _______, _______,
       _______, KC_LGUI, LCA(KC_LEFT), LCA(KC_DOWN), LCA(KC_RIGHT),_______,                                     KC_HOME, KC_LEFT, KC_DOWN, KC_RIGHT,KC_END,  _______,
       _______, _______,      _______,      _______,      _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-                                           _______,      _______, _______, _______, _______, _______, _______, _______, _______, _______
+                                           _______,      _______, KC_DEL,  _______, _______, _______, _______, _______, _______, _______
     ),
+
+
+/*
+ * Left modifier layer
+ *
+ * ,-------------------------------------------.                              ,-------------------------------------------.
+ * |        |      |      |      |      |      |                              |      |      |      |      |      |        |
+ * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
+ * |        |      |      |      |      |      |                              |      |      |      |      |      |        |
+ * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
+ * |        |      |      |      |      |      |      |      |  |      |      |      |      |      |      |      |        |
+ * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        `----------------------------------'  `----------------------------------'
+ */
+    [_LMOD] = LAYOUT(
+      _______, _______, _______, _______, _______, _______,                                     _______, _______, _______, _______, _______, _______,
+      _______, _______, _______, _______, _______, _______,                                     _______, _______, _______, _______, _______, _______,
+      _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
+                                 _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
+    ),
+
+
+/*
+ * Right modifier layer
+ *
+ * ,-------------------------------------------.                              ,-------------------------------------------.
+ * |        |      |      |      |      |      |                              |      |      |      |      |      |        |
+ * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
+ * |        |      |      |      |      |      |                              |      |      |      |      |      |        |
+ * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
+ * |        |      |      |      |      |      |      |      |  |      |      |      |      |      |      |      |        |
+ * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        |      |      |      |      |      |  |      |      |      |      |      |
+ *                        `----------------------------------'  `----------------------------------'
+ */
+    [_RMOD] = LAYOUT(
+      _______, _______, _______, _______, _______, _______,                                     _______, _______, _______, _______, _______, _______,
+      _______, _______, _______, _______, _______, _______,                                     _______, _______, _______, _______, _______, _______,
+      _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
+                                 _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
+    ),
+
+
 // /*
 //  * Layer template
 //  *
@@ -254,19 +271,43 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     rgblight_set_layer_state(3, layer_state_cmp(state, 3));
     rgblight_set_layer_state(4, layer_state_cmp(state, 4));
     rgblight_set_layer_state(5, layer_state_cmp(state, 5));
+    rgblight_set_layer_state(6, layer_state_cmp(state, 6));
+    rgblight_set_layer_state(7, layer_state_cmp(state, 7));
     return state;
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case KC_CCCV:  // One key copy/paste
-            if (record->event.pressed) {
-                copy_paste_timer = timer_read();
+        // case KC_CCCV:  // One key copy/paste
+        //     if (record->event.pressed) {
+        //         copy_paste_timer = timer_read();
+        //     } else {
+        //         if (timer_elapsed(copy_paste_timer) > TAPPING_TERM) {  // Hold, copy
+        //             tap_code16(LCTL(KC_C));
+        //         } else { // Tap, paste
+        //             tap_code16(LCTL(KC_V));
+        //         }
+        //     }
+        //     break;
+
+        case KC_NAV_LSHIFT:
+            if(record->event.pressed) {
+                if(timer_elapsed(nav_lshift_timer) <= TAPPING_TERM) {
+                    nav_lshift_presses += 1;
+                } else {
+                    nav_lshift_presses = 1;
+                }
+
+                nav_lshift_timer = timer_read();
+
+                register_layer(_NAV);
+                if(nav_lshift_presses > 1) {
+                    register_mod(KC_LSHIFT);
+                }
             } else {
-                if (timer_elapsed(copy_paste_timer) > TAPPING_TERM) {  // Hold, copy
-                    tap_code16(LCTL(KC_C));
-                } else { // Tap, paste
-                    tap_code16(LCTL(KC_V));
+                unregister_layer(_NAV);
+                if(nav_lshift_presses > 1) {
+                    unregister_mod(KC_LSHIFT);
                 }
             }
             break;
@@ -283,6 +324,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // nothing on release
             }
             break;
+
         case KC_RPAB:
             if(record->event.pressed) {
                 if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
@@ -327,6 +369,17 @@ static void render_kyria_logo(void) {
 //   oled_write_P(qmk_logo, false);
 // }
 
+void oled_render_mod_state(uint8_t modifiers) {
+  oled_write_P(PSTR("\nMods: "), false);
+  oled_write_P(PSTR("SHF"), (modifiers & MOD_MASK_SHIFT));
+  oled_write_P(PSTR(" "), false);
+  oled_write_P(PSTR("CTL"), (modifiers & MOD_MASK_CTRL));
+  oled_write_P(PSTR(" "), false);
+  oled_write_P(PSTR("ALT"), (modifiers & MOD_MASK_ALT));
+  oled_write_P(PSTR(" "), false);
+  oled_write_P(PSTR("GUI"), (modifiers & MOD_MASK_GUI));
+}
+
 static void render_status(void) {
     // QMK Logo and version information
     // render_qmk_logo();
@@ -353,6 +406,13 @@ static void render_status(void) {
         default:
             oled_write_P(PSTR("Undefined\n"), false);
     }
+
+    // debugging
+    // char s[10];
+    // snprintf(s, 10, "nls: %d", nav_lshift_presses);
+    // oled_write_ln(s, false);
+
+    oled_render_mod_state(get_mods()|get_oneshot_mods());
 
     // Host Keyboard LED Status
     uint8_t led_usb_state = host_keyboard_leds();
