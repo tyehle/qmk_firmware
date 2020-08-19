@@ -15,8 +15,9 @@
  */
 #include QMK_KEYBOARD_H
 #include <stdio.h>
-#include "persistent_hold.h"
 #include "layers.h"
+#include "persistent_hold.h"
+#include "multihold.h"
 
 #ifdef RGBLIGHT_ENABLE
 // Unused
@@ -62,8 +63,8 @@ const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
 );
 #endif
 
-uint16_t nav_lshift_timer;
-int nav_lshift_presses = 0;
+multihold_state_t nav_lshift_state = { .timer = 0, .count = 0 };
+multihold_state_t nav_rshift_state = { .timer = 0, .count = 0 };
 
 uint16_t copy_paste_timer;
 enum custom_keycodes {
@@ -71,7 +72,8 @@ enum custom_keycodes {
     KC_LPAB,
     KC_RPAB,
     // KC_SCAG,
-    KC_NAV_LSHIFT
+    KC_NAV_LSHIFT,
+    KC_NAV_RSHIFT
 };
 
 
@@ -83,7 +85,6 @@ void keyboard_post_init_user(void) {
 
   rgblight_layers = layer_lights;
 #endif
-    nav_lshift_timer = timer_read();
 }
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -105,7 +106,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
       KC_ESC,  KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
       KC_LOCK, LGUI_T(KC_A),   LALT_T(KC_S),   LCTL_T(KC_D),   LSFT_T(KC_F),   KC_G,         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
       KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_ESC,   KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
-      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), KC_NAV_LSHIFT, XXXXXXX, RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
+      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), KC_NAV_LSHIFT, KC_NAV_RSHIFT, RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
     ),
 
 
@@ -291,25 +292,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         //     break;
 
         case KC_NAV_LSHIFT:
-            if(record->event.pressed) {
-                if(timer_elapsed(nav_lshift_timer) <= TAPPING_TERM) {
-                    nav_lshift_presses += 1;
-                } else {
-                    nav_lshift_presses = 1;
-                }
+            layer_mod_event(record, _NAV, KC_LSHIFT, &nav_lshift_state);
+            break;
 
-                nav_lshift_timer = timer_read();
-
-                register_layer(_NAV);
-                if(nav_lshift_presses > 1) {
-                    register_mod(KC_LSHIFT);
-                }
-            } else {
-                unregister_layer(_NAV);
-                if(nav_lshift_presses > 1) {
-                    unregister_mod(KC_LSHIFT);
-                }
-            }
+        case KC_NAV_RSHIFT:
+            layer_mod_event(record, _NAV, KC_RSHIFT, &nav_rshift_state);
             break;
 
         // Parens and angle brackets
