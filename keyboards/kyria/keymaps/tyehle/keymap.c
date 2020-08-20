@@ -65,15 +65,30 @@ const rgblight_segment_t* const PROGMEM layer_lights[] = RGBLIGHT_LAYERS_LIST(
 
 multihold_state_t nav_lshift_state = { .timer = 0, .count = 0 };
 multihold_state_t nav_rshift_state = { .timer = 0, .count = 0 };
+multihold_state_t raise_lower_state = { .timer = 0, .count = 0 };
+multihold_state_t lower_raise_state = { .timer = 0, .count = 0 };
+multihold_state_t lctrl_lalt_state = { .timer = 0, .count = 0 };
+multihold_state_t rctrl_ralt_state = { .timer = 0, .count = 0 };
+multihold_state_t lscag_state = { .timer = 0, .count = 0 };
+multihold_state_t rscag_state = { .timer = 0, .count = 0 };
 
 uint16_t copy_paste_timer;
 enum custom_keycodes {
     // KC_CCCV = SAFE_RANGE,
-    KC_LPAB,
+    KC_LPAB = SAFE_RANGE,
     KC_RPAB,
-    // KC_SCAG,
+
     KC_NAV_LSHIFT,
-    KC_NAV_RSHIFT
+    KC_NAV_RSHIFT,
+
+    KC_RAISE_LOWER,
+    KC_LOWER_RAISE,
+
+    KC_LSCAG,
+    KC_RSCAG,
+
+    KC_LCTRL_LALT,
+    KC_RCTRL_RALT,
 };
 
 
@@ -90,23 +105,23 @@ void keyboard_post_init_user(void) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /*
  * Base Layer: QWERTY
- * TODO: Shift+Layers, Mod Taps on the home row keys, oneshot modifier
+ *
  * ,-------------------------------------------.                              ,-------------------------------------------.
- * |  Esc   |   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  | \   |
+ * |  GUI   |   Q  |   W  |   E  |   R  |   T  |                              |   Y  |   U  |   I  |   O  |   P  |  GUI   |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |  Lock  |   A  |   S  |  D   |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |  ' "   |
+ * |Ctrl/Alt|   A  |   S  |  D   |   F  |   G  |                              |   H  |   J  |   K  |   L  | ;  : |Ctrl/Alt|
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * | LShift |   Z  |   X  |   C  |   V  |   B  |  Esc | GUI  |  | GUI  | CAG  |   N  |   M  | ,  < | . >  | /  ? | RShift |
+ * | LShift |   Z  |   X  |   C  |   V  |   B  |  Esc | GUI  |  | GUI  | Esc  |   N  |   M  | ,  < | . >  | /  ? | RShift |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
- *                        |LShift| Lower| Bksp | Tab  | Nav  |  | Nav  |Enter | Space|Raise |RShift|
- *                        |      |      | Ctrl | Alt  |      |  |      | Alt  | Ctrl |      |      |
+ *                        |SftCtl|Lower | Bksp | Tab  | Nav  |  | Nav  |Enter | Space|Raise |SftCtl|
+ *                        |AltGUI|raise |      | LMod |      |  |      | RMod |      |lower |AltGUI|
  *                        `----------------------------------'  `----------------------------------'
  */
     [_QWERTY] = LAYOUT(
-      KC_ESC,  KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                         KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
-      KC_LOCK, LGUI_T(KC_A),   LALT_T(KC_S),   LCTL_T(KC_D),   LSFT_T(KC_F),   KC_G,         KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
-      KC_LSFT, KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,   KC_ESC,   KC_LGUI,  KC_RGUI, XXXXXXX, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
-      KC_LSHIFT, MO(_LOWER), LCTL_T(KC_BSPC), LALT_T(KC_TAB), KC_NAV_LSHIFT, KC_NAV_RSHIFT, RALT_T(KC_ENT), RCTL_T(KC_SPC), MO(_RAISE),  KC_RSHIFT
+      KC_LGUI,         KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                      KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_RGUI,
+      KC_LCTRL_LALT,   KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                      KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_RCTRL_RALT,
+      KC_LSHIFT,       KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,  KC_ESC,  KC_LGUI, KC_RGUI, KC_ESC,  KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
+      KC_LSCAG, KC_LOWER_RAISE, KC_BSPC, LT(_LMOD, KC_TAB), KC_NAV_LSHIFT, KC_NAV_RSHIFT, LT(_RMOD, KC_ENT), KC_SPC, KC_RAISE_LOWER,  KC_RSCAG
     ),
 
 
@@ -277,52 +292,63 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
+bool process_shifted(keyrecord_t *record, uint16_t normal, uint16_t shifted) {
+    if(record->event.pressed) {
+        if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
+            // register_code16(shifted);
+            tap_code16(shifted);
+        } else {
+            // register_code16(normal);
+            tap_code16(normal);
+        }
+    } else {
+        // if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
+        //     unregister_code16(shifted);
+        // } else {
+        //     unregister_code16(normal);
+        // }
+    }
+
+    return false;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        // case KC_CCCV:  // One key copy/paste
-        //     if (record->event.pressed) {
-        //         copy_paste_timer = timer_read();
-        //     } else {
-        //         if (timer_elapsed(copy_paste_timer) > TAPPING_TERM) {  // Hold, copy
-        //             tap_code16(LCTL(KC_C));
-        //         } else { // Tap, paste
-        //             tap_code16(LCTL(KC_V));
-        //         }
-        //     }
-        //     break;
-
         case KC_NAV_LSHIFT:
             layer_mod_event(record, _NAV, KC_LSHIFT, &nav_lshift_state);
-            break;
+            return false;
 
         case KC_NAV_RSHIFT:
             layer_mod_event(record, _NAV, KC_RSHIFT, &nav_rshift_state);
-            break;
+            return false;
+
+        case KC_RAISE_LOWER:
+            layer_layer_event(record, _RAISE, _LOWER, &raise_lower_state);
+            return false;
+        case KC_LOWER_RAISE:
+            layer_layer_event(record, _LOWER, _RAISE, &lower_raise_state);
+            return false;
+
+        case KC_LCTRL_LALT:
+            mod_mod_event(record, KC_LCTRL, KC_LALT, &lctrl_lalt_state);
+            return false;
+        case KC_RCTRL_RALT:
+            mod_mod_event(record, KC_RCTRL, KC_RALT, &rctrl_ralt_state);
+            return false;
+
+        case KC_LSCAG:
+            quad_mod_event(record, KC_LSHIFT, KC_LCTRL, KC_LALT, KC_LGUI, &lscag_state);
+            return false;
+        case KC_RSCAG:
+            quad_mod_event(record, KC_RSHIFT, KC_RCTRL, KC_RALT, KC_RGUI, &rscag_state);
+            return false;
 
         // Parens and angle brackets
         case KC_LPAB:
-            if(record->event.pressed) {
-                if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
-                    tap_code16(KC_LEFT_ANGLE_BRACKET);
-                } else {
-                    tap_code16(KC_LEFT_PAREN);
-                }
-            } else {
-                // nothing on release
-            }
-            break;
+            return process_shifted(record, KC_LEFT_PAREN, KC_LEFT_ANGLE_BRACKET);
 
         case KC_RPAB:
-            if(record->event.pressed) {
-                if(keyboard_report->mods & MOD_BIT(KC_LSFT) || keyboard_report->mods & MOD_BIT(KC_RSFT)) {
-                    tap_code16(KC_RIGHT_ANGLE_BRACKET);
-                } else {
-                    tap_code16(KC_RIGHT_PAREN);
-                }
-            } else {
-                // nothing on release
-            }
-            break;
+            return process_shifted(record, KC_RIGHT_PAREN, KC_RIGHT_ANGLE_BRACKET);
 
     }
     return true;
@@ -396,7 +422,7 @@ static void render_status(void) {
 
     // debugging
     // char s[10];
-    // snprintf(s, 10, "nls: %d", nav_lshift_presses);
+    // snprintf(s, 10, "(%d, %d)", last_row, last_col);
     // oled_write_ln(s, false);
 
     oled_render_mod_state(get_mods()|get_oneshot_mods());
