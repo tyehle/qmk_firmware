@@ -109,9 +109,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  *                        `----------------------------------'  `----------------------------------'
  */
     [_QWERTY] = LAYOUT(
-      KC_LALT,         KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                      KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_RALT,
-      KC_LCTRL_LGUI,   KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                      KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_RCTRL_RGUI,
-      KC_LSHIFT,       KC_Z,   KC_X,   KC_C,   KC_V,   KC_B,  KC_ESC,  KC_LGUI, KC_RGUI, KC_ESC,  KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
+      KC_LALT,         KC_Q,   KC_W,   KC_E,   KC_R,   KC_T,                                       KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_RALT,
+      KC_LCTRL_LGUI,   KC_A,   KC_S,   KC_D,   KC_F,   KC_G,                                       KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_RCTRL_RGUI,
+      KC_LSHIFT,       KC_Z,   KC_X,   KC_C,   KC_V,   KC_B, KC_LSHIFT, KC_ESC, KC_ESC, KC_RSHIFT, KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSHIFT,
       KC_RAISE_SHIFT, KC_LOWER_SHIFT, KC_BSPC, LT(_LMOD, KC_TAB), KC_NAV_SHIFT, KC_NAV_SHIFT, LT(_RMOD, KC_ENT), KC_SPC, KC_LOWER_SHIFT, KC_RAISE_SHIFT
     ),
 
