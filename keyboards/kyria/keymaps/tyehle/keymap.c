@@ -305,6 +305,22 @@ bool process_shifted(keyrecord_t *record, uint16_t normal, uint16_t shifted) {
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
+        // make builtin modifiers persistent
+        case KC_LSHIFT:
+        case KC_LCTRL:
+        case KC_LALT:
+        case KC_LGUI:
+        case KC_RSHIFT:
+        case KC_RCTRL:
+        case KC_RALT:
+        case KC_RGUI:
+            if(record->event.pressed) {
+                register_mod(keycode);
+            } else {
+                unregister_mod(keycode);
+            }
+            return false;
+
         case KC_NAV_SHIFT:
             layer_mod_event(record, _NAV, KC_LSHIFT, &nav_shift_state);
             return false;
