@@ -68,6 +68,7 @@ multihold_state_t raise_shift_state = { .timer = 0, .count = 0 };
 multihold_state_t lower_shift_state = { .timer = 0, .count = 0 };
 multihold_state_t lctrl_lgui_state = { .timer = 0, .count = 0 };
 multihold_state_t rctrl_rgui_state = { .timer = 0, .count = 0 };
+bool ctl_first = true;
 
 uint16_t copy_paste_timer;
 enum custom_keycodes {
@@ -186,21 +187,21 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * Nav Layer: Move the cursor, position windows, and change desktops
  *
  * ,-------------------------------------------.                              ,-------------------------------------------.
- * |        |      |      | CA ^ |      |      |                              |      |      |  ^   |      |      |        |
+ * |        |      |      | CA ^ |      |Cmd ⇆ |                              |      |      |  ^   |      |      |        |
  * |--------+------+------+------+------+------|                              |------+------+------+------+------+--------|
- * |        | GUI  | CA < | CA v | CA > |      |                              | Home |  <   |  v   |  >   | End  |        |
+ * |        | GUI  | CA < | CA v | CA > |Ctl ⇆ |                              | Home |  <   |  v   |  >   | End  |        |
  * |--------+------+------+------+------+------+-------------.  ,-------------+------+------+------+------+------+--------|
- * |        |      |Alt ⇆ |Cmd ⇆ |Ctl ⇆ |      |      |      |  |      |      |      |      |      |      |      |        |
+ * |        |Ctl Z |Ctl X |Ctl C |Ctl V |Alt ⇆ |      |      |  |      |      |      |      |      |      |      |        |
  * `----------------------+------+------+------+------+------|  |------+------+------+------+------+----------------------'
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        |      |      |      |      |      |  |      |      |      |      |      |
  *                        `----------------------------------'  `----------------------------------'
  */
     [_NAV] = LAYOUT(
-      _______, _______,      _______, LCA(KC_UP),   _______,       _______,                                     _______, _______, KC_UP,   _______, _______, _______,
-      _______, KC_LGUI, LCA(KC_LEFT), LCA(KC_DOWN), LCA(KC_RIGHT), _______,                                     KC_HOME, KC_LEFT, KC_DOWN, KC_RIGHT,KC_END,  _______,
-      _______, _______, A(KC_TAB),    G(KC_TAB),    C(KC_TAB),     _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-                                      _______,      _______,       _______,  _______, _______, _______, _______, _______, _______, _______
+      XXXXXXX, XXXXXXX,      XXXXXXX, LCA(KC_UP),   XXXXXXX,       G(KC_TAB),                                     XXXXXXX, XXXXXXX, KC_UP,   XXXXXXX, XXXXXXX, XXXXXXX,
+      XXXXXXX, KC_LGUI, LCA(KC_LEFT), LCA(KC_DOWN), LCA(KC_RIGHT), C(KC_TAB),                                     KC_HOME, KC_LEFT, KC_DOWN, KC_RIGHT,KC_END,  XXXXXXX,
+      XXXXXXX, C(KC_Z), C(KC_X),      C(KC_C),      C(KC_V),       A(KC_TAB), XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+                                      XXXXXXX,      XXXXXXX,       XXXXXXX,   XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
     ),
 
 
